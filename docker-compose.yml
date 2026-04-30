@@ -1,0 +1,79 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: selora_app
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      # Evita que el volumen sobreescriba el vendor del build
+      - vendor:/var/www/vendor
+    ports:
+      - "8000:80"
+    depends_on:
+      db:
+        condition: service_healthy   # Espera a que MySQL esté realmente listo
+    networks:
+      - selora
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    container_name: selora_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: selora
+      MYSQL_ROOT_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - selora
+    # Sin esto, el servicio app arranca antes de que MySQL acepte conexiones
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  node:
+    image: node:22-alpine       # Alpine = imagen mucho más ligera
+    container_name: selora_node
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - node_modules:/var/www/node_modules   # Persistencia de node_modules
+    ports:
+      - "5173:5173"
+    # --host para que Vite sea accesible desde fuera del contenedor
+    command: sh -c "corepack enable && pnpm install && pnpm run dev -- --host 0.0.0.0"
+    networks:
+      - selora
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: selora_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      TMPDIR: /tmp
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - selora
+
+networks:
+  selora:
+
+volumes:
+  dbdata:
+  vendor:       # Persiste el vendor de composer entre reinicios
+  node_modules: # Persiste node_modules entre reinicios (pnpm install va más rápido)
