@@ -1,6 +1,6 @@
-# 📚 Selora
+# 📚 Selora (🚫STAND BY🚫)
 
-> Red social para lectores. Rastrea tus lecturas, descubre libros, conecta con comunidades y participa en tertulias.
+> Rastrea tus lecturas, descubre libros, conecta con comunidades y participa en tertulias.
 
 **Estado actual:** MVP — Tracker de libros
 
